@@ -18,14 +18,14 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.ExponentialReconnectionPolicy;
 import com.datastax.driver.core.policies.LoggingRetryPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -36,6 +36,7 @@ public class HiveCassandraUtils {
     public static final String HOSTS = "hosts";
     public static final String READ_CONSISTENCY_LEVEL = "read-consistency-level";
     public static final String KEYSPACE = "ks";
+    public static final String WHERE = "where";
 
     public static String getPropertyValue(Properties props, String... propertyNames) {
         for (String propertyName : propertyNames) {
@@ -72,6 +73,10 @@ public class HiveCassandraUtils {
 
     public static String getColumnFamily(Configuration conf) {
         return getConfigValue(conf, HiveCassandraUtils.COLUMN_FAMILY);
+    }
+
+    public static String getWhereClause(Configuration conf) {
+        return getConfigValue(conf, HiveCassandraUtils.WHERE);
     }
 
     public static String getInputConsistencyLevel(Configuration conf) {
@@ -132,7 +137,21 @@ public class HiveCassandraUtils {
         }
 
         public ResultSet execute() {
-            Select selectQuery = QueryBuilder.select().all().from(HiveCassandraUtils.getKeyspace(conf), HiveCassandraUtils.getColumnFamily(this.conf));
+            if (session == null)
+                init();
+
+            // Select selectQuery = QueryBuilder.select().all().from(HiveCassandraUtils.getKeyspace(conf), HiveCassandraUtils.getColumnFamily(this.conf));
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT * FROM ");
+            sb.append(HiveCassandraUtils.getKeyspace(conf));
+            sb.append(".");
+            sb.append(HiveCassandraUtils.getColumnFamily(conf));
+            String whereClause = HiveCassandraUtils.getWhereClause(conf);
+            if (!Strings.isNullOrEmpty(whereClause)) {
+                sb.append(" WHERE ");
+                sb.append(getWhereClause(conf));
+            }
+            SimpleStatement selectQuery = new SimpleStatement(sb.toString());
             selectQuery.setConsistencyLevel(ConsistencyLevel.valueOf(HiveCassandraUtils.getInputConsistencyLevel(conf)));
             return session.execute(selectQuery);
         }
