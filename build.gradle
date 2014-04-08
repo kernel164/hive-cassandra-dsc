@@ -1,19 +1,30 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: 'bintray'
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 group='hive-cassandra-dsc'
-version = '0.1'
+version = '0.1.0'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:0.3'
+    }
+}
 
 repositories {
-    mavenCentral()
+    jcenter()
     maven {
         url 'http://repo.springsource.org/plugins-release/'
     }
 }
 
-configurations{
+configurations {
     provided
 }
 
@@ -38,3 +49,46 @@ task deployFiles( type: Copy, dependsOn: distFiles ) {
 }
 
 task wrapper(type: Wrapper) { gradleVersion = '1.11' }
+
+// custom tasks for creating source/javadoc jars
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            if (plugins.hasPlugin('war')) {
+                from components.web
+            } else {
+                from components.java
+            }
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+        }
+    }
+}
+
+bintray {
+    user = hasProperty('bintrayUser') ? bintrayUser : ""
+    key = hasProperty('bintrayKey') ? bintrayKey : ""
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = 'hive-cassandra-dsc'
+        desc = 'Hive Cassandra StorageHandler using datastax-java-driver'
+        licenses = ['Apache-2.0']
+    }
+}
