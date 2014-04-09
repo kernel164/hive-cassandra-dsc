@@ -8,6 +8,8 @@ targetCompatibility = 1.7
 group='hive-cassandra-dsc'
 version = '0.1.0'
 
+task wrapper(type: Wrapper) { gradleVersion = '1.11' }
+
 buildscript {
     repositories {
         jcenter()
@@ -40,6 +42,8 @@ dependencies {
 
 task distFiles( type: Copy, dependsOn: jar) {
     into "$buildDir/output"
+    include "cassandra-driver-core*", "metrics-core*", "netty*", "$project.name*"
+    exclude "*sources.jar", "*javadoc.jar"
     from configurations.compile, file("$buildDir/libs")
 }
 
@@ -48,7 +52,11 @@ task deployFiles( type: Copy, dependsOn: distFiles ) {
     from file("$buildDir/libs")
 }
 
-task wrapper(type: Wrapper) { gradleVersion = '1.11' }
+task distTarGz(type: Tar, dependsOn: distFiles) {
+    extension = "tgz"
+    compression = Compression.GZIP
+    from "$buildDir/output"
+}
 
 // custom tasks for creating source/javadoc jars
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -77,18 +85,24 @@ publishing {
             artifact javadocJar {
                 classifier "javadoc"
             }
+
+            artifact distTarGz {
+                classifier "all"
+            }
         }
     }
 }
 
 bintray {
-    user = hasProperty('bintrayUser') ? bintrayUser : ""
-    key = hasProperty('bintrayKey') ? bintrayKey : ""
+    user = rootProject.hasProperty('bintrayUser') ? bintrayUser : ""
+    key = rootProject.hasProperty('bintrayKey') ? bintrayKey : ""
     publications = ['mavenJava']
     pkg {
         repo = 'maven'
         name = 'hive-cassandra-dsc'
         desc = 'Hive Cassandra StorageHandler using datastax-java-driver'
         licenses = ['Apache-2.0']
+        labels = ['hive', 'shark', 'cassandra', 'dsc', 'datastax-java-driver']
     }
+    dryRun = rootProject.hasProperty('dryRun') ? dryRun : false
 }

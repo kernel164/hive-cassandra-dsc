@@ -61,7 +61,7 @@ public class HiveCassandraUtils {
             Object value = properties.get(name);
             if (value != null)
                 jobProperties.put(name, value.toString());
-            if (value == null && name == COLUMN_FAMILY) {
+            else if (name == COLUMN_FAMILY) {
                 jobProperties.put(name, properties.getProperty("name").split(".")[1]);
             }
         }
@@ -280,11 +280,15 @@ public class HiveCassandraUtils {
             LOG.info("Disconnecting Cassandra!");
             cluster.close();
         }
+
+        public boolean isClosed() {
+            return cluster.isClosed();
+        }
     }
 
     public static Iterator<Map<String, Object>> getRecordsAsMapIterator(Configuration conf) {
         CassandraCluster cluster = getCassandraCluster(conf);
-        if (cluster != null)
+        if (cluster != null && !cluster.isClosed())
             return cluster.asMapIterator();
         return newCassandraCluster(conf).asMapIterator();
     }
