@@ -16,8 +16,6 @@ import org.apache.hadoop.mapred.OutputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// CREATE EXTERNAL TABLE test_kv (key INT, value STRING) STORED BY 'org.apache.cassandra.hive.cql3.Cql3StorageHandler' WITH SERDEPROPERTIES ("hosts" = "cass01.cfa00.net", "ks" = "cyberflow", "cf" = "test_kv", "columns.mapping" = "key,value" ); 
-// CREATE EXTERNAL TABLE test_kv (key INT, value STRING) STORED BY 'org.apache.cassandra.hive.cql3.Cql3StorageHandler' WITH SERDEPROPERTIES ("hosts" = "cass01.cfa00.net", "ks" = "cyberflow" );
 public class Cql3StorageHandler implements HiveStorageHandler {
     static Logger LOG = LoggerFactory.getLogger(Cql3StorageHandler.class);
     private Configuration conf;
